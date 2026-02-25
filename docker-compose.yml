@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  automaton-auditor:
+    build: .
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
+      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-automaton-auditor}
+    volumes:
+      - ./audit:/app/audit
+      - ./reports:/app/reports
+    command: 
+      - --repo
+      - ${REPO_URL}
+      - --pdf
+      - ${PDF_PATH}

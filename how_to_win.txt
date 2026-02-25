@@ -1,0 +1,128 @@
+Here is your **Windows-compatible version** of the Quick Start section.
+All commands below work in **Windows PowerShell** (recommended) or Command Prompt.
+
+---
+
+# 🚀 **Quick Start (Windows Compatible)**
+
+## **1️⃣ Extract the ZIP**
+
+### Option A – Using File Explorer
+
+* Right-click `automaton_auditor.zip`
+* Click **Extract All…**
+* Open the extracted `automaton_auditor` folder
+
+### Option B – Using PowerShell
+
+```powershell
+Expand-Archive automaton_auditor.zip -DestinationPath .
+cd automaton_auditor
+```
+
+---
+
+## **2️⃣ Configure Environment Variables**
+
+Copy the example environment file:
+
+```powershell
+copy .env.example .env
+```
+
+Then open `.env` in Notepad:
+
+```powershell
+notepad .env
+```
+
+Add your OpenAI API key:
+
+```
+OPENAI_API_KEY=your_key_here
+```
+
+Save and close.
+
+---
+
+## **3️⃣ Create Virtual Environment**
+
+If you're using **Python (recommended for Windows)**:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+```
+
+If using **uv (Windows compatible)**:
+
+```powersshell
+uv venv
+.\.venv\Scripts\activate
+uv pip install -e .
+```
+
+If not using `uv`, install dependencies with pip:
+
+```powershell
+pip install -e .
+```
+
+---
+
+## **4️⃣ Verify Installation**
+
+```powershell
+python -m src.main --config-check
+```
+
+---
+
+## **5️⃣ Run Audit**
+
+```powershell
+python -m src.main `
+  --repo https://github.com/user/repository `
+  --pdf report.pdf
+```
+
+(Backticks ` are PowerShell line continuation characters.
+You can also write it on one line.)
+
+Single-line version:
+
+```powershell
+python -m src.main --repo https://github.com/user/repository --pdf report.pdf
+```
+
+---
+
+# 🐳 Docker (Windows Compatible)
+
+If you are using Docker Desktop on Windows:
+
+```powershell
+docker build -t automaton-auditor .
+docker run --env-file .env automaton-auditor
+```
+
+---
+
+# 🔎 Notes for Windows Users
+
+* Use `copy` instead of `cp`
+* Use `Expand-Archive` instead of `unzip`
+* Use `.\.venv\Scripts\activate` instead of `source .venv/bin/activate`
+* Use backticks (`) for multi-line PowerShell commands
+* Make sure **Git for Windows** is installed for repository cloning
+
+---
+
+If you'd like, I can also make it:
+
+* ✅ Fully Windows + WSL compatible
+* ✅ Windows CMD-only compatible (no PowerShell)
+* ✅ Or completely cross-platform (Linux/macOS/Windows unified guide)
+
+Just tell me which environment you are using.

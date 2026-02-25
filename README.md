@@ -15,26 +15,28 @@ The Automaton Auditor is a hierarchical multi-agent system designed to audit cod
 ## 🏗️ Architecture
 
 ```
+
 START
-  ↓
+↓
 ContextBuilder (loads rubric)
-  ↓
+↓
 ┌─────────────────────┐
-│ RepoInvestigator    │ (parallel)
-│ DocAnalyst          │ (parallel)
+│ RepoInvestigator │ (parallel)
+│ DocAnalyst │ (parallel)
 └─────────────────────┘
-  ↓
+↓
 EvidenceAggregator (fan-in)
-  ↓
+↓
 ┌─────────────────────┐
-│ Prosecutor          │ (parallel)
-│ Defense             │ (parallel)
-│ TechLead            │ (parallel)
+│ Prosecutor │ (parallel)
+│ Defense │ (parallel)
+│ TechLead │ (parallel)
 └─────────────────────┘
-  ↓
+↓
 ChiefJustice (synthesis)
-  ↓
+↓
 END
+
 ```
 
 ## 🚀 Quick Start
@@ -57,19 +59,23 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install dependencies (development)
 uv pip install -e .
 ```
 
-### Reproducible setup (with uv)
+### Reproducible setup (with uv.lock)
+
+For fully deterministic installs, use the committed `uv.lock`:
 
 ```bash
 uv venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-uv sync  # installs exactly what's in uv.lock
 
+# Sync exactly the locked dependencies
+uv sync --locked
+```
 
-Using pip:
+### Using pip (alternative)
 
 ```bash
 # Create virtual environment
@@ -149,12 +155,14 @@ audit/
 ### Detective Layer
 
 **RepoInvestigator** (`src/tools/git_tools.py`, `src/tools/ast_tools.py`)
+
 - Git forensic analysis (commit history, patterns)
 - AST-based code structure analysis
 - Security vulnerability scanning
 - State management verification
 
 **DocAnalyst** (`src/tools/pdf_tools.py`)
+
 - PDF document parsing and chunking
 - Concept verification (not just keyword matching)
 - Cross-referencing with repository evidence
@@ -164,15 +172,16 @@ audit/
 
 **Three Judge Personas** (`src/nodes/judges.py`)
 
-1. **Prosecutor** - Critical lens, assumes vibe coding
-2. **Defense** - Optimistic lens, rewards effort and intent
-3. **Tech Lead** - Pragmatic lens, evaluates maintainability
+1. **Prosecutor** – Critical lens, assumes vibe coding
+2. **Defense** – Optimistic lens, rewards effort and intent
+3. **Tech Lead** – Pragmatic lens, evaluates maintainability
 
 All judges use `.with_structured_output()` to enforce Pydantic schema compliance.
 
 ### Synthesis Layer
 
 **Chief Justice** (`src/nodes/justice.py`)
+
 - Applies deterministic conflict resolution rules
 - Security override (security flaws cap scores)
 - Fact supremacy (evidence > opinion)
@@ -223,10 +232,10 @@ pytest --cov=src tests/
 
 The system evaluates against four dimensions:
 
-1. **Forensic Accuracy (Code)** - Repository structure and implementation
-2. **Forensic Accuracy (Docs)** - Documentation quality and accuracy
-3. **Judicial Nuance** - Persona separation and dialectical reasoning
-4. **LangGraph Architecture** - Proper orchestration and parallelism
+1. **Forensic Accuracy (Code)** – Repository structure and implementation
+2. **Forensic Accuracy (Docs)** – Documentation quality and accuracy
+3. **Judicial Nuance** – Persona separation and dialectical reasoning
+4. **LangGraph Architecture** – Proper orchestration and parallelism
 
 See `rubric/week2_rubric.json` for complete specifications.
 
@@ -282,6 +291,7 @@ automaton_auditor/
 ├── audit/                     # Generated reports
 ├── tests/                     # Test suite
 ├── pyproject.toml
+├── uv.lock                    # Locked dependencies for deterministic installs
 └── README.md
 ```
 
@@ -297,13 +307,14 @@ This is a challenge implementation. For production use cases:
 
 ## 📄 License
 
-MIT License - See LICENSE file for details
+MIT License – See LICENSE file for details.
 
 ## 🏆 Acknowledgments
 
-Built for the FDE Week 2 Challenge: The Automaton Auditor
+Built for the FDE Week 2 Challenge: The Automaton Auditor.
 
 Implements concepts from:
+
 - LangGraph documentation
 - Multi-Agent Systems research
 - Constitutional AI principles
@@ -312,3 +323,7 @@ Implements concepts from:
 ---
 
 **Note**: This system is designed for educational and assessment purposes. For production deployments, additional hardening and testing are recommended.
+
+```
+
+```

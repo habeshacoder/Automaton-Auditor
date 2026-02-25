@@ -1,6 +1,7 @@
 """
 Main entry point for Automaton Auditor
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -12,7 +13,7 @@ from src.nodes.state_models import AgentState
 
 def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
     """
-    Execute the complete audit pipeline
+    Execute the complete audit pipeline.
 
     Args:
         repo_url: GitHub repository URL
@@ -20,7 +21,7 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
         output_dir: Directory to save audit report
 
     Returns:
-        Path to generated audit report
+        Path to generated audit report (string) or None on failure.
     """
     print("\n" + "=" * 60)
     print("🏛️  AUTOMATON AUDITOR - DIGITAL COURTROOM")
@@ -47,7 +48,8 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
         "evidences": {},
         "opinions": [],
         "final_report": "",
-        "errors": []
+        "errors": [],
+        "has_fatal_error": False,  # IMPORTANT: new control flag
     }
 
     print(f"\n🔍 Starting audit...")
@@ -57,8 +59,6 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
     try:
         # Execute the graph
         print("\n⚙️  Executing agent swarm...")
-
-        # Show progress
         print("  [1/6] Loading rubric...")
         print("  [2/6] Collecting evidence (Detectives)...")
         print("  [3/6] Aggregating evidence...")
@@ -86,7 +86,7 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_file = output_path / f"audit_report_{timestamp}.md"
 
-        with open(report_file, "w") as f:
+        with open(report_file, "w", encoding="utf-8") as f:
             f.write(report)
 
         print(f"\n✅ Audit complete!")
@@ -106,6 +106,7 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
     except Exception as e:
         print(f"\n❌ Error during execution: {str(e)}")
         import traceback
+
         traceback.print_exc()
         return None
 
@@ -117,6 +118,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Check configuration only
+  python -m src.main --config-check
+
   # Audit a repository with PDF report
   python -m src.main \\
     --repo https://github.com/user/repo \\
@@ -127,40 +131,45 @@ Examples:
     --repo https://github.com/user/repo \\
     --pdf report.pdf \\
     --output ./custom_audit_dir
-        """
+        """,
     )
 
+    # NOTE: no required=True here; we validate manually
     parser.add_argument(
         "--repo",
-        required=True,
-        help="GitHub repository URL to audit"
+        help="GitHub repository URL to audit",
     )
 
     parser.add_argument(
         "--pdf",
-        required=True,
-        help="Path to PDF architectural report"
+        help="Path to PDF architectural report",
     )
 
     parser.add_argument(
         "--output",
         default=None,
-        help="Output directory for audit report (default: audit/report_onself_generated/)"
+        help=("Output directory for audit report " "(default: audit/report_onself_generated/)"),
     )
 
     parser.add_argument(
         "--config-check",
         action="store_true",
-        help="Only check configuration and exit"
+        help="Only check configuration and exit",
     )
 
     args = parser.parse_args()
 
+    # Config check does NOT require repo/pdf
     if args.config_check:
         Config.display()
-        sys.exit(0 if not Config.validate() else 1)
+        issues = Config.validate()
+        sys.exit(0 if not issues else 1)
 
-    # Validate inputs
+    # For normal audit: repo and pdf are required
+    if not args.repo or not args.pdf:
+        parser.error("--repo and --pdf are required unless using --config-check")
+
+    # Validate PDF path
     pdf_path = Path(args.pdf)
     if not pdf_path.exists():
         print(f"❌ PDF file not found: {pdf_path}")
@@ -170,7 +179,7 @@ Examples:
     report_path = run_audit(
         repo_url=args.repo,
         pdf_path=str(pdf_path),
-        output_dir=args.output
+        output_dir=args.output,
     )
 
     sys.exit(0 if report_path else 1)

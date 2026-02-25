@@ -61,6 +61,14 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
 ```
 
+### Reproducible setup (with uv)
+
+```bash
+uv venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+uv sync  # installs exactly what's in uv.lock
+
+
 Using pip:
 
 ```bash

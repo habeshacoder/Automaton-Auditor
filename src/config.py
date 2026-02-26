@@ -1,6 +1,7 @@
 """
 Configuration management for Automaton Auditor
 """
+
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -12,18 +13,16 @@ load_dotenv()
 class Config:
     """Configuration container"""
 
-    # API Keys
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+    # OpenRouter API
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+    OPENROUTER_MODEL = os.getenv(
+        "OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet"  # default; can be any OpenRouter model id
+    )
 
     # LangSmith Tracing
     LANGCHAIN_TRACING_V2 = os.getenv("LANGCHAIN_TRACING_V2", "true")
     LANGCHAIN_API_KEY = os.getenv("LANGCHAIN_API_KEY", "")
     LANGCHAIN_PROJECT = os.getenv("LANGCHAIN_PROJECT", "automaton-auditor")
-
-    # Model Configuration
-    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
-    ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
     # Paths
     PROJECT_ROOT = Path(__file__).parent.parent
@@ -39,8 +38,8 @@ class Config:
         """Validate configuration and return list of issues"""
         issues = []
 
-        if not cls.OPENAI_API_KEY:
-            issues.append("OPENAI_API_KEY not set")
+        if not cls.OPENROUTER_API_KEY:
+            issues.append("OPENROUTER_API_KEY not set")
 
         if cls.LANGCHAIN_TRACING_V2 == "true" and not cls.LANGCHAIN_API_KEY:
             issues.append("LANGCHAIN_API_KEY not set but tracing is enabled")
@@ -56,8 +55,7 @@ class Config:
         print("=" * 60)
         print("Automaton Auditor Configuration")
         print("=" * 60)
-        print(f"OpenAI Model: {cls.OPENAI_MODEL}")
-        print(f"Anthropic Model: {cls.ANTHROPIC_MODEL}")
+        print(f"OpenRouter Model: {cls.OPENROUTER_MODEL}")
         print(f"LangSmith Tracing: {cls.LANGCHAIN_TRACING_V2}")
         print(f"LangSmith Project: {cls.LANGCHAIN_PROJECT}")
         print(f"Rubric Path: {cls.RUBRIC_PATH}")
@@ -65,7 +63,6 @@ class Config:
         print(f"Max Retries: {cls.MAX_RETRIES}")
         print(f"Timeout: {cls.TIMEOUT_SECONDS}s")
 
-        # Validate
         issues = cls.validate()
         if issues:
             print("\n⚠️  Configuration Issues:")

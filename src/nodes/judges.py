@@ -1,25 +1,30 @@
 """
-Judicial Layer - Three distinct judge personas with LLM backing
+Judicial Layer - Three distinct judge personas with LLM backing (OpenRouter)
 """
+
 from typing import Dict, List
-from src.nodes.state_models import AgentState, JudicialOpinion, Evidence
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from pydantic import ValidationError
 import os
+from pydantic import ValidationError
+
+from src.nodes.state_models import AgentState, JudicialOpinion, Evidence
+from src.config import Config
+
+from langchain_openrouter import ChatOpenRouter
+from langchain_core.prompts import ChatPromptTemplate
 
 
 class JudgeAgent:
-    """Base class for Judge agents with structured output"""
+    """Base class for Judge agents with structured output via OpenRouter"""
 
     def __init__(self, persona: str, rubric_logic: Dict):
         self.persona = persona
         self.rubric_logic = rubric_logic
 
-        # Initialize LLM with structured output
-        self.llm = ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4"),
-            temperature=0.3  # Lower temperature for more deterministic judging
+        # Initialize LLM with structured output via OpenRouter
+        self.llm = ChatOpenRouter(
+            model=Config.OPENROUTER_MODEL,
+            temperature=0.3,  # Lower temperature for more deterministic judging
+            max_retries=Config.MAX_RETRIES,
         ).with_structured_output(JudicialOpinion)
 
         # Persona-specific system prompts
@@ -43,7 +48,6 @@ Scoring Guidelines:
 - Score 5: Only if absolutely flawless (rare)
 
 Be the critical voice that ensures quality standards.""",
-
             "Defense": """You are THE DEFENSE ATTORNEY in a code quality trial.
 
 Core Philosophy: "Reward Effort and Intent. Look for the Spirit of the Law."
@@ -63,7 +67,6 @@ Scoring Guidelines:
 - Score 5: Deep understanding and solid execution
 
 Be the voice that recognizes genuine engineering effort.""",
-
             "TechLead": """You are THE TECH LEAD in a code quality trial.
 
 Core Philosophy: "Does it actually work? Is it maintainable?"
@@ -82,25 +85,27 @@ Scoring Guidelines:
 - Score 4: Production-ready with minor improvements needed
 - Score 5: Excellent architecture and implementation
 
-Be the pragmatic voice of technical reality."""
+Be the pragmatic voice of technical reality.""",
         }
 
-    def create_prompt(self, criterion_id: str, evidences: List[Evidence]) -> str:
+    def create_prompt(self, criterion_id: str, evidences: List[Evidence]) -> tuple[str, str]:
         """Create persona-specific prompt with rubric logic"""
 
         system_prompt = self.system_prompts[self.persona]
         rubric_instruction = self.rubric_logic.get(self.persona.lower(), "")
 
         # Format evidence
-        evidence_text = "\n\n".join([
-            f"Evidence {i+1}: {ev.goal}\n"
-            f"  Found: {ev.found}\n"
-            f"  Location: {ev.location}\n"
-            f"  Content: {ev.content}\n"
-            f"  Rationale: {ev.rationale}\n"
-            f"  Confidence: {ev.confidence}"
-            for i, ev in enumerate(evidences)
-        ])
+        evidence_text = "\n\n".join(
+            [
+                f"Evidence {i+1}: {ev.goal}\n"
+                f"  Found: {ev.found}\n"
+                f"  Location: {ev.location}\n"
+                f"  Content: {ev.content}\n"
+                f"  Rationale: {ev.rationale}\n"
+                f"  Confidence: {ev.confidence}"
+                for i, ev in enumerate(evidences)
+            ]
+        )
 
         user_prompt = f"""Evaluate criterion: {criterion_id}
 
@@ -116,9 +121,7 @@ Provide your judicial opinion with:
 3. Specific evidence citations
 
 Remember your role as {self.persona}. Be consistent with your persona's philosophy."""
-
         return system_prompt, user_prompt
-
 
     def evaluate(self, criterion_id: str, evidences: List[Evidence]) -> JudicialOpinion:
         """
@@ -127,33 +130,28 @@ Remember your role as {self.persona}. Be consistent with your persona's philosop
         system_prompt, user_prompt = self.create_prompt(criterion_id, evidences)
 
         try:
-            # Create messages
             messages = [
                 ("system", system_prompt),
-                ("user", user_prompt)
+                ("user", user_prompt),
             ]
 
-            # Invoke LLM with structured output
             opinion = self.llm.invoke(messages)
 
-            # Ensure judge field is set correctly
             opinion.judge = self.persona
             opinion.criterion_id = criterion_id
 
-            # Validate opinion
             if not (1 <= opinion.score <= 5):
-                opinion.score = 3  # Default to middle score if invalid
+                opinion.score = 3
 
             return opinion
 
         except ValidationError as e:
-            # Fallback if structured output fails
             return JudicialOpinion(
                 judge=self.persona,
                 criterion_id=criterion_id,
                 score=3,
                 argument=f"Error in structured output: {str(e)}. Defaulting to neutral score.",
-                cited_evidence=[ev.goal for ev in evidences]
+                cited_evidence=[ev.goal for ev in evidences],
             )
         except Exception as e:
             return JudicialOpinion(
@@ -161,119 +159,110 @@ Remember your role as {self.persona}. Be consistent with your persona's philosop
                 criterion_id=criterion_id,
                 score=1,
                 argument=f"Evaluation error: {str(e)}",
-                cited_evidence=[]
+                cited_evidence=[],
             )
+
+
+def _collect_all_evidence(state: AgentState) -> List[Evidence]:
+    all_evidences: List[Evidence] = []
+    for _, evidence_list in state["evidences"].items():
+        all_evidences.extend(evidence_list)
+    return all_evidences
+
+
+def _filter_relevant_evidence(all_evidences: List[Evidence], criterion_id: str) -> List[Evidence]:
+    keywords = criterion_id.split("_")
+    relevant = [
+        ev for ev in all_evidences if any(keyword in ev.goal.lower() for keyword in keywords)
+    ]
+    return relevant or all_evidences
 
 
 def prosecutor_node(state: AgentState) -> Dict:
     """Judge Node 1: The Prosecutor"""
-    opinions = []
-    errors = []
+    opinions: List[JudicialOpinion] = []
+    errors: List[str] = []
 
     try:
-        # Get all evidence
-        all_evidences = []
-        for detective_type, evidence_list in state["evidences"].items():
-            all_evidences.extend(evidence_list)
+        all_evidences = _collect_all_evidence(state)
 
-        # Get rubric dimensions
         for dimension in state["rubric_dimensions"]:
-            if dimension["target_artifact"] == "github_repo":
-                criterion_id = dimension["id"]
-                rubric_logic = dimension["judicial_logic"]
+            if dimension["target_artifact"] != "github_repo":
+                continue
 
-                # Filter relevant evidence for this criterion
-                relevant_evidence = [
-                    ev for ev in all_evidences 
-                    if any(keyword in ev.goal.lower() 
-                           for keyword in criterion_id.split("_"))
-                ]
+            criterion_id = dimension["id"]
+            rubric_logic = dimension["judicial_logic"]
 
-                if not relevant_evidence:
-                    relevant_evidence = all_evidences  # Use all if none match
+            relevant_evidence = _filter_relevant_evidence(all_evidences, criterion_id)
 
-                judge = JudgeAgent("Prosecutor", rubric_logic)
-                opinion = judge.evaluate(criterion_id, relevant_evidence)
-                opinions.append(opinion)
+            judge = JudgeAgent("Prosecutor", rubric_logic)
+            opinion = judge.evaluate(criterion_id, relevant_evidence)
+            opinions.append(opinion)
 
     except Exception as e:
         errors.append(f"Prosecutor error: {str(e)}")
 
     return {
         "opinions": opinions,
-        "errors": errors
+        "errors": errors,
     }
 
 
 def defense_node(state: AgentState) -> Dict:
     """Judge Node 2: The Defense Attorney"""
-    opinions = []
-    errors = []
+    opinions: List[JudicialOpinion] = []
+    errors: List[str] = []
 
     try:
-        all_evidences = []
-        for detective_type, evidence_list in state["evidences"].items():
-            all_evidences.extend(evidence_list)
+        all_evidences = _collect_all_evidence(state)
 
         for dimension in state["rubric_dimensions"]:
-            if dimension["target_artifact"] == "github_repo":
-                criterion_id = dimension["id"]
-                rubric_logic = dimension["judicial_logic"]
+            if dimension["target_artifact"] != "github_repo":
+                continue
 
-                relevant_evidence = [
-                    ev for ev in all_evidences 
-                    if any(keyword in ev.goal.lower() 
-                           for keyword in criterion_id.split("_"))
-                ]
+            criterion_id = dimension["id"]
+            rubric_logic = dimension["judicial_logic"]
 
-                if not relevant_evidence:
-                    relevant_evidence = all_evidences
+            relevant_evidence = _filter_relevant_evidence(all_evidences, criterion_id)
 
-                judge = JudgeAgent("Defense", rubric_logic)
-                opinion = judge.evaluate(criterion_id, relevant_evidence)
-                opinions.append(opinion)
+            judge = JudgeAgent("Defense", rubric_logic)
+            opinion = judge.evaluate(criterion_id, relevant_evidence)
+            opinions.append(opinion)
 
     except Exception as e:
         errors.append(f"Defense error: {str(e)}")
 
     return {
         "opinions": opinions,
-        "errors": errors
+        "errors": errors,
     }
 
 
 def tech_lead_node(state: AgentState) -> Dict:
     """Judge Node 3: The Tech Lead"""
-    opinions = []
-    errors = []
+    opinions: List[JudicialOpinion] = []
+    errors: List[str] = []
 
     try:
-        all_evidences = []
-        for detective_type, evidence_list in state["evidences"].items():
-            all_evidences.extend(evidence_list)
+        all_evidences = _collect_all_evidence(state)
 
         for dimension in state["rubric_dimensions"]:
-            if dimension["target_artifact"] == "github_repo":
-                criterion_id = dimension["id"]
-                rubric_logic = dimension["judicial_logic"]
+            if dimension["target_artifact"] != "github_repo":
+                continue
 
-                relevant_evidence = [
-                    ev for ev in all_evidences 
-                    if any(keyword in ev.goal.lower() 
-                           for keyword in criterion_id.split("_"))
-                ]
+            criterion_id = dimension["id"]
+            rubric_logic = dimension["judicial_logic"]
 
-                if not relevant_evidence:
-                    relevant_evidence = all_evidences
+            relevant_evidence = _filter_relevant_evidence(all_evidences, criterion_id)
 
-                judge = JudgeAgent("TechLead", rubric_logic)
-                opinion = judge.evaluate(criterion_id, relevant_evidence)
-                opinions.append(opinion)
+            judge = JudgeAgent("TechLead", rubric_logic)
+            opinion = judge.evaluate(criterion_id, relevant_evidence)
+            opinions.append(opinion)
 
     except Exception as e:
         errors.append(f"TechLead error: {str(e)}")
 
     return {
         "opinions": opinions,
-        "errors": errors
+        "errors": errors,
     }

@@ -147,11 +147,11 @@ def build_audit_graph():
     builder.add_edge("tech_lead", "chief_justice")
 
     # Extra safety: if we explicitly detect fatal error, allow direct jump
-    builder.add_conditional_edges(
-        "evidence_aggregator",
-        has_fatal_error,
-        {True: "chief_justice"},
-    )
+    # builder.add_conditional_edges(
+    #     "evidence_aggregator",
+    #     has_fatal_error,
+    #     {True: "chief_justice"},
+    # )
 
     # Final
     builder.add_edge("chief_justice", END)

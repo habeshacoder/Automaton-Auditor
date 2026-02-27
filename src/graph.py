@@ -8,6 +8,7 @@ from src.nodes.detectives import (
     repo_investigator_node,
     doc_analyst_node,
     evidence_aggregator_node,
+     vision_inspector_node,
 )
 from src.nodes.judges import (
     prosecutor_node,
@@ -104,6 +105,7 @@ def build_audit_graph():
     builder.add_node("repo_investigator", repo_investigator_node)
     builder.add_node("doc_analyst", doc_analyst_node)
     builder.add_node("evidence_aggregator", evidence_aggregator_node)
+    builder.add_node("vision_inspector", vision_inspector_node)
 
     # Judges
     builder.add_node("prosecutor", prosecutor_node)
@@ -125,6 +127,7 @@ def build_audit_graph():
     # Fan-in from detectives
     builder.add_edge("repo_investigator", "evidence_aggregator")
     builder.add_edge("doc_analyst", "evidence_aggregator")
+    builder.add_edge("vision_inspector", "evidence_aggregator")
 
     # Routing helpers
     def no_fatal_error(state: AgentState) -> bool:

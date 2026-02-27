@@ -1,26 +1,25 @@
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# System deps
 RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
+# Copy project metadata and code
 COPY pyproject.toml .
 COPY src/ src/
 COPY rubric/ rubric/
 
-# Install Python dependencies
+# Install Python deps (editable install)
 RUN pip install --no-cache-dir -e .
 
-# Create audit output directory
+# Ensure audit output dir exists (matches Config.AUDIT_OUTPUT_DIR)
 RUN mkdir -p audit/report_onself_generated
 
-# Set environment variables
+# Runtime env
 ENV PYTHONUNBUFFERED=1
 
-# Entry point
+# Entry point (args come from docker-compose)
 ENTRYPOINT ["python", "-m", "src.main"]

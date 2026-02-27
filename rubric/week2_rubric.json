@@ -48,7 +48,18 @@
         "defense": "Support simpler graph designs if they implement robust 'State' transitions and Pydantic validation at every node.",
         "tech_lead": "Determine if the fan-in synchronization correctly aggregates lists of evidence before passing them to the judicial bench."
       }
-    }
+    },
+    {
+  "id": "diagram_flow_architecture",
+  "name": "Diagram Flow Architecture",
+  "target_artifact": "architecture_diagrams",
+  "forensic_instruction": "Analyze architectural diagrams. Does the arrow flow clearly from Detectives (Parallel) -> Evidence Aggregation -> Judges (Parallel) -> Synthesis, or is it a simple linear pipeline?",
+  "judicial_logic": {
+    "prosecutor": "Flag diagrams that misrepresent or oversimplify the pipeline (e.g., linear instead of parallel).",
+    "defense": "Reward diagrams that capture parallelism and clear stages.",
+    "tech_lead": "Focus on whether the visualization is accurate enough to guide implementation."
+  }
+}
   ],
   "synthesis_rules": {
     "security_override": "Confirmed security flaws (e.g., shell injection in git tools) cap total score at 3.",

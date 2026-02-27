@@ -218,3 +218,90 @@ def evidence_aggregator_node(state: AgentState) -> Dict:
         "errors": errors,
         "has_fatal_error": fatal_flag,
     }
+
+def vision_inspector_node(state: AgentState) -> Dict:
+    """
+    VisionInspector (Diagram Detective):
+    - Scans a diagrams directory (or infers image paths from the PDF/repo).
+    - Sends diagrams to a vision LLM.
+    - Emits Evidence focused on flow: Detectives -> Aggregation -> Judges -> Synthesis,
+      and whether parallelism is clearly depicted.
+    """
+    evidences = state.get("evidences", {})
+    errors = state.get("errors", [])
+    repo_url = state.get("repo_url", "")
+    project_root = Path(__file__).parent.parent
+
+    # You can choose a convention: diagrams under ./reports/diagrams or repo/docs/diagrams
+    diagrams_root = project_root / "reports" / "diagrams"
+    if not diagrams_root.exists():
+        # Non-fatal: just record that no diagrams were found
+        errors.append("VisionInspector: no diagrams directory found at ./reports/diagrams")
+        return {"evidences": evidences, "errors": errors}
+
+    image_paths = list(diagrams_root.glob("*.png")) + list(diagrams_root.glob("*.jpg"))
+    if not image_paths:
+        errors.append("VisionInspector: no diagram images found")
+        return {"evidences": evidences, "errors": errors}
+
+    # Use your chosen vision model.
+    # If you’re using OpenRouter + a vision-capable model:
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",  # or another vision-capable model exposed via your provider
+        temperature=0.2,
+    )
+
+    vision_evidences = []
+
+    for img_path in image_paths:
+        prompt = """
+You are the VisionInspector (Diagram Detective).
+
+Forensic Protocol A (Flow Analysis):
+- Look at the architectural diagram.
+- Determine whether:
+  1) Detectives run in parallel,
+  2) Their outputs feed into an Evidence Aggregation stage,
+  3) Judges (multiple personas) operate in parallel,
+  4) A final Synthesis / Chief Justice stage produces a verdict.
+- If the flow is shown as a simple linear pipeline without parallel branches, call that out.
+
+Respond with:
+- A short classification: "correct_parallel_flow", "mostly_correct", or "linear_or_misleading".
+- A concise rationale, referencing visual elements (arrows, swimlanes, labels).
+"""
+
+        # langchain_openai’s vision interface uses "image_url" blocks or similar;
+        # adapt this to the exact client you’re using.
+        # Pseudo-code for multi-modal call:
+        result = llm.invoke([
+            ("user", [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": f"file://{img_path}"},
+            ])
+        ])
+
+        text = result.content if hasattr(result, "content") else str(result)
+        # Very simple classification heuristic
+        text_lower = text.lower()
+        if "correct_parallel_flow" in text_lower:
+            classification = "correct_parallel_flow"
+        elif "mostly_correct" in text_lower:
+            classification = "mostly_correct"
+        elif "linear_or_misleading" in text_lower:
+            classification = "linear_or_misleading"
+        else:
+            classification = "unknown"
+
+        ev = Evidence(
+            goal="Analyze diagram flow from Detectives (Parallel) -> Evidence Aggregation -> Judges (Parallel) -> Synthesis",
+            found=classification != "unknown",
+            location=str(img_path),
+            content=text,
+            rationale=f"VisionInspector classification: {classification}",
+            confidence=0.7,
+        )
+        vision_evidences.append(ev)
+
+    evidences.setdefault("vision_inspector", []).extend(vision_evidences)
+    return {"evidences": evidences, "errors": errors}

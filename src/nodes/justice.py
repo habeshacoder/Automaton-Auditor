@@ -12,6 +12,11 @@ def chief_justice_node(state: AgentState) -> Dict:
     Synthesize all judicial opinions into final verdict
     Applies deterministic conflict resolution rules
     """
+    print("\n" + "=" * 60)
+    print("👑 CHIEF JUSTICE: Final Synthesis")
+    print("=" * 60)
+    print("Role: Synthesizing all judicial opinions into final verdict\n")
+
     opinions = state["opinions"]
     synthesis_rules = _get_synthesis_rules(state)
 
@@ -19,6 +24,13 @@ def chief_justice_node(state: AgentState) -> Dict:
     opinions_by_criterion = defaultdict(list)
     for opinion in opinions:
         opinions_by_criterion[opinion.criterion_id].append(opinion)
+
+    # Log all opinions being synthesized
+    print("\n📋 All Judicial Opinions to be Synthesized:")
+    for criterion_id, criterion_opinions in opinions_by_criterion.items():
+        print(f"\n  Criterion: {criterion_id}")
+        for opinion in criterion_opinions:
+            print(f"    - {opinion.judge}: {opinion.score}/5")
 
     # Apply synthesis rules
     final_verdicts = {}
@@ -29,10 +41,19 @@ def chief_justice_node(state: AgentState) -> Dict:
         final_verdicts[criterion_id] = verdict
         dissent_summaries[criterion_id] = dissent
 
+        # Log verdict synthesis
+        print(f"\n📋 Verdict Synthesis for '{criterion_id}':")
+        print(f"   Final Score: {verdict}/5")
+        print(f"   Dissent Summary: {dissent}")
+
     # Generate markdown report
     report = _generate_markdown_report(
         final_verdicts, dissent_summaries, opinions_by_criterion, state
     )
+
+    print("\n" + "-" * 40)
+    print(f"📊 Chief Justice Summary: {len(final_verdicts)} verdicts synthesized")
+    print("-" * 40)
 
     return {"final_report": report}
 
@@ -54,6 +75,8 @@ def _synthesize_criterion(
     Returns:
         (final_score, dissent_summary)
     """
+    print(f"\n  🔍 Synthesizing '{criterion_id}'...")
+
     if not opinions:
         return 1, "No opinions provided"
 
@@ -62,6 +85,11 @@ def _synthesize_criterion(
     prosecutor_score = scores_by_judge.get("Prosecutor", 3)
     defense_score = scores_by_judge.get("Defense", 3)
     tech_lead_score = scores_by_judge.get("TechLead", 3)
+
+    # Log individual judge scores
+    print(f"    Prosecutor Score: {prosecutor_score}/5")
+    print(f"    Defense Score: {defense_score}/5")
+    print(f"    TechLead Score: {tech_lead_score}/5")
 
     # Security Override
     security_keywords = ["security", "os.system", "injection", "sanitization"]
@@ -74,6 +102,7 @@ def _synthesize_criterion(
                 "Security override applied. Prosecutor flagged security issues, "
                 "capping score at 3."
             )
+            print(f"    ⚠️  Security Override Applied - Final Score: {final_score}/5")
             return final_score, dissent
 
     # Fact Supremacy (TechLead weighted double)
@@ -86,6 +115,9 @@ def _synthesize_criterion(
         prosecutor_score, defense_score, tech_lead_score
     )
 
+    print(f"    Weighted Score Calculation: ({prosecutor_score} + {defense_score} + {tech_lead_score}*2) / 4 = {weighted_score:.2f}")
+    print(f"    Final Score (clamped 1-5): {final_score}/5")
+
     if score_variance > 2:
         dissent = (
             f"Significant disagreement (variance: {score_variance}). "
@@ -94,12 +126,14 @@ def _synthesize_criterion(
             f"TechLead: {tech_lead_score}. "
             "Tech Lead's practical assessment weighted double in synthesis."
         )
+        print(f"    ⚠️  Significant Disagreement Detected - Variance: {score_variance}")
     else:
         dissent = (
             f"Judges reached consensus. Scores ranged from "
             f"{min(prosecutor_score, defense_score, tech_lead_score)} "
             f"to {max(prosecutor_score, defense_score, tech_lead_score)}."
         )
+        print(f"    ✅ Consensus Reached")
 
     return final_score, dissent
 
@@ -126,6 +160,25 @@ def _generate_markdown_report(
         "architecture with specialized Detective and Judge agents.\n\n"
     )
     report += "---\n\n"
+    report += "## 🔍 Detective Evidence Collection\n\n"
+    report += "Structured evidence collected by Detective agents during the forensic analysis:\n\n"
+
+    # Display evidence by source
+    evidences = state.get("evidences", {})
+    for source, evidence_list in evidences.items():
+        report += f"### 🕵️ {source.replace('_', ' ').title()}\n\n"
+        if evidence_list:
+            for i, evidence in enumerate(evidence_list, 1):
+                report += f"#### Evidence {i}: {evidence.goal}\n\n"
+                report += f"- **Found:** {'✅ Yes' if evidence.found else '❌ No'}\n"
+                report += f"- **Location:** {evidence.location}\n"
+                report += f"- **Content:** {evidence.content or 'N/A'}\n"
+                report += f"- **Rationale:** {evidence.rationale}\n"
+                report += f"- **Confidence:** {evidence.confidence:.0%}\n\n"
+        else:
+            report += "*No evidence collected for this source.*\n\n"
+        report += "---\n\n"
+
     report += "## 📊 Final Verdicts\n\n"
 
     for criterion_id, score in verdicts.items():

@@ -56,18 +56,52 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
     print(f"  Repository: {repo_url}")
     print(f"  PDF Report: {pdf_path}")
 
+    # Log input state
+    print("\n" + "=" * 60)
+    print("📥 INPUT STATE")
+    print("=" * 60)
+    print(f"  repo_url: {repo_url}")
+    print(f"  pdf_path: {pdf_path}")
+    print(f"  rubric_dimensions: {len(initial_state['rubric_dimensions'])} dimensions")
+    print("=" * 60)
+
     try:
         # Execute the graph
         print("\n⚙️  Executing agent swarm...")
+        print("\n" + "=" * 50)
+        print("📋 PHASE 1: Loading Rubric")
+        print("=" * 50)
         print("  [1/6] Loading rubric...")
+
+        print("\n" + "=" * 50)
+        print("🕵️  PHASE 2: Detective Evidence Collection")
+        print("=" * 50)
         print("  [2/6] Collecting evidence (Detectives)...")
-        print("  [3/6] Aggregating evidence...")
+        print("    - RepoInvestigator: Analyzing git history and code structure")
+        print("    - DocAnalyst: Parsing PDF report for claims")
+        print("    - EvidenceAggregator: Consolidating findings")
+
+        print("\n" + "=" * 50)
+        print("⚖️  PHASE 3: Judicial Deliberation")
+        print("=" * 50)
         print("  [4/6] Rendering judicial opinions...")
+        print("    - Prosecutor: Critical analysis (finding flaws)")
+        print("    - Defense: Optimistic analysis (rewarding effort)")
+        print("    - TechLead: Pragmatic analysis (production readiness)")
+
+        print("\n" + "=" * 50)
+        print("👑 PHASE 4: Chief Justice Synthesis")
+        print("=" * 50)
         print("  [5/6] Synthesizing verdict (Chief Justice)...")
+        print("    - Applying conflict resolution rules")
+        print("    - Generating final markdown report")
+
+        print("\n" + "=" * 50)
+        print("📊 PHASE 5: Report Generation")
+        print("=" * 50)
+        print("  [6/6] Generating report...")
 
         final_state = graph.invoke(initial_state)
-
-        print("  [6/6] Generating report...")
 
         # Extract report
         report = final_state.get("final_report", "")
@@ -100,6 +134,15 @@ def run_audit(repo_url: str, pdf_path: str, output_dir: str = None) -> str:
                 print(f"  - {error}")
 
         print("\n" + "=" * 60)
+
+        # Log final output
+        print("\n" + "=" * 60)
+        print("📤 FINAL OUTPUT")
+        print("=" * 60)
+        print(f"  Final Report Length: {len(report)} characters")
+        print(f"  Report Preview (first 500 chars):")
+        print(f"  {report[:500]}...")
+        print("=" * 60)
 
         return str(report_file)
 

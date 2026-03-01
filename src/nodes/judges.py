@@ -180,6 +180,12 @@ def _filter_relevant_evidence(all_evidences: List[Evidence], criterion_id: str) 
 
 def prosecutor_node(state: AgentState) -> Dict:
     """Judge Node 1: The Prosecutor"""
+    print("\n" + "=" * 60)
+    print("⚖️  JUDGE: The Prosecutor")
+    print("=" * 60)
+    print("Philosophy: 'Trust No One. Assume Vibe Coding.'")
+    print("Role: Critical analysis - finding flaws and gaps\n")
+
     opinions: List[JudicialOpinion] = []
     errors: List[str] = []
 
@@ -199,8 +205,18 @@ def prosecutor_node(state: AgentState) -> Dict:
             opinion = judge.evaluate(criterion_id, relevant_evidence)
             opinions.append(opinion)
 
+            # Log opinion to console
+            print(f"\n📋 Prosecutor Opinion for '{criterion_id}':")
+            print(f"   Score: {opinion.score}/5")
+            print(f"   Argument: {opinion.argument[:300]}{'...' if len(opinion.argument) > 300 else ''}")
+            print(f"   Cited Evidence: {', '.join(opinion.cited_evidence) if opinion.cited_evidence else 'None'}")
+
     except Exception as e:
         errors.append(f"Prosecutor error: {str(e)}")
+
+    print("\n" + "-" * 40)
+    print(f"📊 Prosecutor Summary: {len(opinions)} opinions rendered")
+    print("-" * 40)
 
     return {
         "opinions": opinions,
@@ -210,6 +226,12 @@ def prosecutor_node(state: AgentState) -> Dict:
 
 def defense_node(state: AgentState) -> Dict:
     """Judge Node 2: The Defense Attorney"""
+    print("\n" + "=" * 60)
+    print("⚖️  JUDGE: The Defense Attorney")
+    print("=" * 60)
+    print("Philosophy: 'Reward Effort and Intent. Look for the Spirit of the Law.'")
+    print("Role: Optimistic analysis - rewarding effort and recognizing strengths\n")
+
     opinions: List[JudicialOpinion] = []
     errors: List[str] = []
 
@@ -229,8 +251,18 @@ def defense_node(state: AgentState) -> Dict:
             opinion = judge.evaluate(criterion_id, relevant_evidence)
             opinions.append(opinion)
 
+            # Log opinion to console
+            print(f"\n📋 Defense Opinion for '{criterion_id}':")
+            print(f"   Score: {opinion.score}/5")
+            print(f"   Argument: {opinion.argument[:300]}{'...' if len(opinion.argument) > 300 else ''}")
+            print(f"   Cited Evidence: {', '.join(opinion.cited_evidence) if opinion.cited_evidence else 'None'}")
+
     except Exception as e:
         errors.append(f"Defense error: {str(e)}")
+
+    print("\n" + "-" * 40)
+    print(f"📊 Defense Summary: {len(opinions)} opinions rendered")
+    print("-" * 40)
 
     return {
         "opinions": opinions,
@@ -240,6 +272,12 @@ def defense_node(state: AgentState) -> Dict:
 
 def tech_lead_node(state: AgentState) -> Dict:
     """Judge Node 3: The Tech Lead"""
+    print("\n" + "=" * 60)
+    print("⚖️  JUDGE: The Tech Lead")
+    print("=" * 60)
+    print("Philosophy: 'Does it actually work? Is it maintainable?'")
+    print("Role: Pragmatic analysis - production readiness assessment\n")
+
     opinions: List[JudicialOpinion] = []
     errors: List[str] = []
 
@@ -259,8 +297,18 @@ def tech_lead_node(state: AgentState) -> Dict:
             opinion = judge.evaluate(criterion_id, relevant_evidence)
             opinions.append(opinion)
 
+            # Log opinion to console
+            print(f"\n📋 TechLead Opinion for '{criterion_id}':")
+            print(f"   Score: {opinion.score}/5")
+            print(f"   Argument: {opinion.argument[:300]}{'...' if len(opinion.argument) > 300 else ''}")
+            print(f"   Cited Evidence: {', '.join(opinion.cited_evidence) if opinion.cited_evidence else 'None'}")
+
     except Exception as e:
         errors.append(f"TechLead error: {str(e)}")
+
+    print("\n" + "-" * 40)
+    print(f"📊 TechLead Summary: {len(opinions)} opinions rendered")
+    print("-" * 40)
 
     return {
         "opinions": opinions,
